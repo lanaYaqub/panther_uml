@@ -42,7 +42,7 @@ import {
 import UMLViewer from '@/components/UMLViewer'
 import { templates } from '@/constants'
 import { generateUMLAction } from '@/actions/uml.action'
-import { improveUMLAction } from '@/actions/improve-uml.action' 
+import { improveUMLAction } from '@/actions/improve-uml.action' // 👈 New import for conversation improvement
 
 
 export default function UMLGenerator() {
@@ -65,13 +65,13 @@ export default function UMLGenerator() {
 		input: string
 		umlCode: string
 		rawResponse?: string
-		basedOnStepIndex?: number 
+		basedOnStepIndex?: number // NEW FIELD
 	  }[]
 	} | null>(null)
 
 
 
-	
+	// Initialize editor with default template
 	useEffect(() => {
 		if (typeof window !== 'undefined' && editorRef.current) {
 			// TODO: Implement ace editor initialization
@@ -79,7 +79,7 @@ export default function UMLGenerator() {
 		}
 	}, [])
 
-
+	// Toggle dark mode
 	useEffect(() => {
 		if (isDarkMode) {
 			document.documentElement.classList.add('dark')
@@ -88,7 +88,7 @@ export default function UMLGenerator() {
 		}
 	}, [isDarkMode])
 
-
+	// Mock AI generation function
 	const generateUML = async () => {
 	  if (!description.trim()) return
 
@@ -117,48 +117,52 @@ export default function UMLGenerator() {
 	  }
 	}
 
-	const handleImproveDiagram = async () => {
-	  if (!chatInput.trim()) return
+const handleImproveDiagram = async () => {
+  if (!chatInput.trim()) return;
 
-	  try {
-		setIsGenerating(true)
+  try {
+    setIsGenerating(true);
 
-		const response = await improveUMLAction({
-		  currentUML: umlCode,
-		  userMessage: chatInput,
-		  diagramType: diagramType,
-		  originalStory: originalStory,
-		})
+    const response = await improveUMLAction({
+      currentUML: umlCode,
+      userMessage: chatInput,
+      diagramType,
+      originalStory,
+    });
 
-		if (response?.uml) {
-		  setUmlCode(response.uml)
-		  setConversation(prev => {
-			if (!prev) return null
-			return {
-			  ...prev,
-			  steps: [
-				...prev.steps,
-				{
-				  input: chatInput,
-				  umlCode: response.uml,
-				  rawResponse: response.rawText, 
-				},
-			  ],
-			}
-		  })
-		  setChatInput('')
-		}
+    // Narrow the type: ensure it's a non-empty string
+    if (!response || typeof response.uml !== 'string' || !response.uml.trim()) {
+      alert('Failed to improve diagram.');
+      return;
+    }
 
-		else {
-		  alert('Failed to improve diagram.')
-		}
-	  } catch (error) {
-		console.error(error)
-		alert('Something went wrong')
-	  } finally {
-		setIsGenerating(false)
-	  }
-	}
+    const nextUml = response.uml; // <- guaranteed string
+
+    setUmlCode(nextUml);
+
+    setConversation(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        steps: [
+          ...prev.steps,
+          {
+            input: chatInput,
+            umlCode: nextUml,                // <- stays string
+            rawResponse: response.rawText ?? '',
+          },
+        ],
+      };
+    });
+
+    setChatInput('');
+  } catch (error) {
+    console.error(error);
+    alert('Something went wrong');
+  } finally {
+    setIsGenerating(false);
+  }
+};
 	
 	const handleViewClick = (umlCode: string, sourceIndex: number) => {
 	  if (!conversation) return
@@ -183,7 +187,7 @@ export default function UMLGenerator() {
 
 	
 	const downloadConversation = (
-	  conversation: typeof conversation,
+	  data: typeof conversation, 
 	  format: 'json' | 'csv'
 	) => {
 	  if (!conversation) return
@@ -231,7 +235,7 @@ export default function UMLGenerator() {
 
 
 
-
+	// Mock function to render UML diagram
 	const renderUML = () => {
 		return UMLViewer({ umlCode, isGenerating, setImage })
 	}
@@ -249,26 +253,26 @@ export default function UMLGenerator() {
 
 	const handleDownload = async () => {
 		try {
-			
+			// Fetch the SVG content from the PlantUML URL
 			const response = await fetch(image)
 			if (!response.ok) {
 				throw new Error('Failed to fetch the SVG content')
 			}
 
-			
+			// Convert the response to a Blob
 			const svgBlob = await response.blob()
 
-			
+			// Create a URL for the Blob
 			const url = URL.createObjectURL(svgBlob)
 
-			
+			// Create a temporary anchor element to trigger the download
 			const link = document.createElement('a')
 			link.href = url
-			link.download = 'uml.svg' 
-			document.body.appendChild(link) 
-			link.click() 
+			link.download = 'uml.svg' // Set the filename for the downloaded file
+			document.body.appendChild(link) // Append the link to the DOM (required for Firefox)
+			link.click() // Trigger the download
 
-			
+			// Clean up by revoking the Blob URL and removing the link element
 			URL.revokeObjectURL(url)
 			document.body.removeChild(link)
 		} catch (error) {
