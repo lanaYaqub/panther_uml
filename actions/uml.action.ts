@@ -51,10 +51,13 @@ Output only valid PlantUML code for a ${diagramType}.
     const umlCode = extractPlantUMLCode(responseText);
 
     // Validate presence of UML syntax
-    if (!umlCode.includes('@startuml') || !umlCode.includes('@enduml')) {
-      throw new Error('Generated UML does not include proper PlantUML syntax.');
-    }
+    if (!umlCode) {
+  throw new Error('No UML was generated.');
+}
 
+if (!umlCode.includes('@startuml') || !umlCode.includes('@enduml')) {
+  throw new Error('Generated UML does not include proper PlantUML syntax.');
+}
     return umlCode;
   } catch (error) {
     console.error('Error generating UML:', error);
